@@ -9,6 +9,31 @@ An end-to-end build log and tutorial for developing a Databricks lakehouse, work
 > [!IMPORTANT]
 > The system may be developed and validated privately with authorized operational data. No source dataset is published. Every record, identifier, taxonomy example, screenshot preview, and reproducible result committed to this public repository must be synthetic, fictionalized, sanitized, or safely generalized.
 
+## Project at a glance
+
+```mermaid
+flowchart LR
+    A["Source Data"] --> B["Bronze<br/>Raw + Traceable"]
+    B --> C["Bronze Validation<br/>Profile + Investigate"]
+    C --> D["Silver<br/>Clean + Validated"]
+    D --> E["Gold<br/>Analytics + ML Ready"]
+    E --> F["Work-Code Model"]
+    F --> G["Asset Model"]
+    G --> H["Human Review"]
+    H --> I["Feedback Flywheel"]
+    I -.-> E
+
+    classDef complete fill:#d1fae5,stroke:#059669,color:#111827;
+    classDef current fill:#fef3c7,stroke:#d97706,color:#111827;
+    classDef future fill:#f3f4f6,stroke:#9ca3af,color:#374151;
+
+    class A,B,C,D complete;
+    class E current;
+    class F,G,H,I future;
+```
+
+**Current position:** Source → Bronze → Validation → Silver are complete. **Gold is next.**
+
 ## What this repository demonstrates
 
 This repository follows the actual engineering dependency chain:
@@ -32,6 +57,16 @@ Facilities organizations produce large volumes of text-heavy work orders. Histor
 
 The proposed solution provides ranked work-code recommendations while keeping a human reviewer in control. Reviewer actions are preserved as evaluation evidence and potential retraining data.
 
+```mermaid
+flowchart LR
+    A["Messy Work Order<br/>Description + Context"] --> B["Validate / Recommend<br/>Work Code"]
+    B --> C["Add Facility + Location<br/>Asset Inventory + History"]
+    C --> D["Rank / Predict<br/>Likely Asset"]
+    D --> E["Human Review"]
+    E --> F["Verified Feedback"]
+    F -.-> B
+```
+
 ## Target architecture
 
 ```mermaid
@@ -45,18 +80,31 @@ flowchart TD
     G --> D
 ```
 
+## Medallion responsibilities
+
+```mermaid
+flowchart LR
+    B["BRONZE<br/><br/>Preserve source<br/>Add lineage<br/>Validate ingestion"] --> S["SILVER<br/><br/>Clean fields<br/>Normalize nulls<br/>Parse dates<br/>Handle confirmed repeats"] --> G["GOLD<br/><br/>Create model_text<br/>Engineer features<br/>Build training datasets<br/>Add business context"]
+```
+
+| Layer | Main question | Responsibility |
+|---|---|---|
+| **Bronze** | What did the source contain? | Preserve raw history and lineage |
+| **Silver** | Can we trust and consistently use the business fields? | Clean, standardize, validate, and handle confirmed data-quality problems |
+| **Gold** | What does a specific analytical/modeling use case need? | Build model text, features, context, labels, and versioned datasets |
+
 ## Current implementation plan
 
-| Issue | Deliverable | Completion evidence |
+| Issue | Deliverable | Status |
 |---:|---|---|
-| [#2](https://github.com/terziceh/workorder-flywheel/issues/2) | Load source data into Databricks | Safe screenshots, landing-path explanation, and read verification |
-| [#3](https://github.com/terziceh/workorder-flywheel/issues/3) | Build Bronze tables and ingestion notebook | Delta write, file/timestamp metadata, and saved count reconciliation; full-refresh rerun strategy documented |
-| [#4](https://github.com/terziceh/workorder-flywheel/issues/4) | Profile and validate Bronze | Initial schema, missingness, grain, duplicate, date-sample, and lineage profiling; findings documented |
-| [#5](https://github.com/terziceh/workorder-flywheel/issues/5) | Build the Silver pipeline | Clean records, quality flags, confirmed duplicate removal, Delta write, and reconciliation |
-| [#6](https://github.com/terziceh/workorder-flywheel/issues/6) | Build Gold ML datasets | Reproducible train, validation, test, inference, and evaluation outputs |
-| [#7](https://github.com/terziceh/workorder-flywheel/issues/7) | Analyze labels and modeling strategy | Label-quality findings, taxonomy decisions, and evaluation plan |
-| [#8](https://github.com/terziceh/workorder-flywheel/issues/8) | Train the TF-IDF baseline | MLflow run, Top-k metrics, error analysis, and saved pipeline |
-| [#9](https://github.com/terziceh/workorder-flywheel/issues/9) | Build the hybrid SLM model | Baseline comparison, structured inference, fallbacks, and model card |
+| [#2](https://github.com/terziceh/workorder-flywheel/issues/2) | Load source data into Databricks | ✅ Complete |
+| [#3](https://github.com/terziceh/workorder-flywheel/issues/3) | Build Bronze tables and ingestion notebook | ✅ Complete |
+| [#4](https://github.com/terziceh/workorder-flywheel/issues/4) | Profile and validate Bronze | ✅ Complete |
+| [#5](https://github.com/terziceh/workorder-flywheel/issues/5) | Build the Silver pipeline | ✅ Complete |
+| [#6](https://github.com/terziceh/workorder-flywheel/issues/6) | Build Gold ML datasets | 🟡 Next |
+| [#7](https://github.com/terziceh/workorder-flywheel/issues/7) | Analyze labels and modeling strategy | ⏳ Planned |
+| [#8](https://github.com/terziceh/workorder-flywheel/issues/8) | Train the TF-IDF baseline | ⏳ Planned |
+| [#9](https://github.com/terziceh/workorder-flywheel/issues/9) | Build the hybrid SLM model | ⏳ Planned |
 
 ## Tutorial chapters
 
@@ -81,6 +129,18 @@ flowchart TD
 
 **Current stage:** Bronze and Silver are implemented. The next dependency is Gold dataset design and model-specific feature preparation under [#6](https://github.com/terziceh/workorder-flywheel/issues/6).
 
+```mermaid
+flowchart LR
+    A["Landing"] --> B["Bronze"] --> C["Validation"] --> D["Silver"] --> E["GOLD — NEXT"] --> F["Modeling"] --> G["Review App"]
+
+    classDef done fill:#d1fae5,stroke:#059669,color:#111827;
+    classDef next fill:#fef3c7,stroke:#d97706,color:#111827,stroke-width:3px;
+    classDef later fill:#f3f4f6,stroke:#9ca3af,color:#374151;
+    class A,B,C,D done;
+    class E next;
+    class F,G later;
+```
+
 - [x] Repository foundation and public Project board
 - [x] Privacy boundary
 - [x] Documentation and issue structure
@@ -103,6 +163,11 @@ flowchart TD
 
 The reviewed private notebook reads a landed CSV with source columns kept as strings, standardizes column names with a collision check, adds `_ingested_at` and `_source_file`, and overwrites the Bronze Delta snapshot. Its saved output confirms that the readable source and persisted Bronze row counts matched.
 
+```mermaid
+flowchart LR
+    A["Landed CSV"] --> B["Read as source strings"] --> C["Normalize column names"] --> D["Add lineage metadata"] --> E["Bronze Delta"] --> F["Reconcile counts"]
+```
+
 This version uses configuration variables and a manually supplied source filename, not notebook widgets or incremental batch controls. Overwrite is the documented full-refresh strategy; count reconciliation verifies row totals, not field-level parsing, uniqueness, or business correctness.
 
 See the [Bronze walkthrough](docs/04_bronze_ingestion.md) for code, explanations, and limitations. The original notebook and operational outputs remain private.
@@ -111,13 +176,40 @@ See the [Bronze walkthrough](docs/04_bronze_ingestion.md) for code, explanations
 
 Bronze validation reviewed structure, missing values, candidate grain, exact repeated records, creation-date examples, and ingestion lineage without rewriting the Bronze table. Repeated work-order numbers were not treated as duplicates because one work order can legitimately contain multiple phases.
 
+```mermaid
+flowchart LR
+    A["Structure"] --> F["Silver Rules"]
+    B["Missingness"] --> F
+    C["Candidate Grain"] --> F
+    D["Exact Repeats"] --> F
+    E["Dates + Lineage"] --> F
+```
+
 The duplicate review isolated exact repeated business records for separate confirmation and informed the Silver cleaning rules. Operational records and review exports remain private.
 
 ### Silver cleaning implemented
 
 Bronze profiling was used to define the first Silver transformation rules. The Silver pipeline now standardizes business-facing field names, normalizes blanks and whitespace, preserves identifiers as text, standardizes selected categorical labels, parses creation timestamps, and adds explicit data-quality flags.
 
+```mermaid
+flowchart TD
+    A["Validated Bronze"] --> B["Rename ambiguous fields"]
+    B --> C["Trim whitespace + blanks to null"]
+    C --> D["Preserve IDs as strings"]
+    D --> E["Standardize selected labels"]
+    E --> F["Preserve maintenance descriptions"]
+    F --> G["Parse creation timestamps"]
+    G --> H["Create quality flags"]
+    H --> I["Remove confirmed exact repeats"]
+    I --> J["Validate + write Silver Delta"]
+```
+
 Maintenance descriptions are intentionally preserved rather than aggressively cleaned because their terminology and structure may be useful to downstream work-code and asset modeling. Model-specific `model_text`, keyword extraction, TF-IDF preparation, embeddings, and feature engineering are deferred to Gold.
+
+```mermaid
+flowchart LR
+    A["Original maintenance description<br/>Preserved in Silver"] --> B["Gold text preparation"] --> C["model_text + keywords"] --> D["Work-code features"] --> E["Asset features + context"]
+```
 
 The exact repeated export records identified during Bronze validation were reviewed before removal. Silver retains one copy of each complete business record while preserving legitimate multi-phase work orders, then writes the cleaned snapshot as a Delta table and validates the saved result.
 

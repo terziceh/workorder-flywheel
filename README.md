@@ -9,31 +9,6 @@ An end-to-end build log and tutorial for developing a Databricks lakehouse, work
 > [!IMPORTANT]
 > The system may be developed and validated privately with authorized operational data. No source dataset is published. Every record, identifier, taxonomy example, screenshot preview, and reproducible result committed to this public repository must be synthetic, fictionalized, sanitized, or safely generalized.
 
-## Project at a glance
-
-```mermaid
-flowchart LR
-    A["Source Data"] --> B["Bronze<br/>Raw + Traceable"]
-    B --> C["Bronze Validation<br/>Profile + Investigate"]
-    C --> D["Silver<br/>Clean + Validated"]
-    D --> E["Gold<br/>Analytics + ML Ready"]
-    E --> F["Work-Code Model"]
-    F --> G["Asset Model"]
-    G --> H["Human Review"]
-    H --> I["Feedback Flywheel"]
-    I -.-> E
-
-    classDef complete fill:#d1fae5,stroke:#059669,color:#111827;
-    classDef current fill:#fef3c7,stroke:#d97706,color:#111827;
-    classDef future fill:#f3f4f6,stroke:#9ca3af,color:#374151;
-
-    class A,B,C,D complete;
-    class E current;
-    class F,G,H,I future;
-```
-
-**Current position:** Source → Bronze → Validation → Silver are complete. **Gold is next.**
-
 ## What this repository demonstrates
 
 This repository follows the actual engineering dependency chain:
@@ -57,16 +32,6 @@ Facilities organizations produce large volumes of text-heavy work orders. Histor
 
 The proposed solution provides ranked work-code recommendations while keeping a human reviewer in control. Reviewer actions are preserved as evaluation evidence and potential retraining data.
 
-```mermaid
-flowchart LR
-    A["Messy Work Order<br/>Description + Context"] --> B["Validate / Recommend<br/>Work Code"]
-    B --> C["Add Facility + Location<br/>Asset Inventory + History"]
-    C --> D["Rank / Predict<br/>Likely Asset"]
-    D --> E["Human Review"]
-    E --> F["Verified Feedback"]
-    F -.-> B
-```
-
 ## Target architecture
 
 ```mermaid
@@ -81,11 +46,6 @@ flowchart TD
 ```
 
 ## Medallion responsibilities
-
-```mermaid
-flowchart LR
-    B["BRONZE<br/><br/>Preserve source<br/>Add lineage<br/>Validate ingestion"] --> S["SILVER<br/><br/>Clean fields<br/>Normalize nulls<br/>Parse dates<br/>Handle confirmed repeats"] --> G["GOLD<br/><br/>Create model_text<br/>Engineer features<br/>Build training datasets<br/>Add business context"]
-```
 
 | Layer | Main question | Responsibility |
 |---|---|---|
@@ -129,18 +89,6 @@ flowchart LR
 
 **Current stage:** Bronze and Silver are implemented. The next dependency is Gold dataset design and model-specific feature preparation under [#6](https://github.com/terziceh/workorder-flywheel/issues/6).
 
-```mermaid
-flowchart LR
-    A["Landing"] --> B["Bronze"] --> C["Validation"] --> D["Silver"] --> E["GOLD — NEXT"] --> F["Modeling"] --> G["Review App"]
-
-    classDef done fill:#d1fae5,stroke:#059669,color:#111827;
-    classDef next fill:#fef3c7,stroke:#d97706,color:#111827,stroke-width:3px;
-    classDef later fill:#f3f4f6,stroke:#9ca3af,color:#374151;
-    class A,B,C,D done;
-    class E next;
-    class F,G later;
-```
-
 - [x] Repository foundation and public Project board
 - [x] Privacy boundary
 - [x] Documentation and issue structure
@@ -162,11 +110,6 @@ flowchart LR
 ### Bronze ingestion implemented
 
 The reviewed private notebook reads a landed CSV with source columns kept as strings, standardizes column names with a collision check, adds `_ingested_at` and `_source_file`, and overwrites the Bronze Delta snapshot. Its saved output confirms that the readable source and persisted Bronze row counts matched.
-
-```mermaid
-flowchart LR
-    A["Landed CSV"] --> B["Read as source strings"] --> C["Normalize column names"] --> D["Add lineage metadata"] --> E["Bronze Delta"] --> F["Reconcile counts"]
-```
 
 This version uses configuration variables and a manually supplied source filename, not notebook widgets or incremental batch controls. Overwrite is the documented full-refresh strategy; count reconciliation verifies row totals, not field-level parsing, uniqueness, or business correctness.
 
@@ -205,11 +148,6 @@ flowchart TD
 ```
 
 Maintenance descriptions are intentionally preserved rather than aggressively cleaned because their terminology and structure may be useful to downstream work-code and asset modeling. Model-specific `model_text`, keyword extraction, TF-IDF preparation, embeddings, and feature engineering are deferred to Gold.
-
-```mermaid
-flowchart LR
-    A["Original maintenance description<br/>Preserved in Silver"] --> B["Gold text preparation"] --> C["model_text + keywords"] --> D["Work-code features"] --> E["Asset features + context"]
-```
 
 The exact repeated export records identified during Bronze validation were reviewed before removal. Silver retains one copy of each complete business record while preserving legitimate multi-phase work orders, then writes the cleaned snapshot as a Delta table and validates the saved result.
 

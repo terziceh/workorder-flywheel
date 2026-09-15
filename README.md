@@ -4,7 +4,7 @@
 
 **Project board:** [Work Order Data Flywheel](https://github.com/users/terziceh/projects/7)
 
-An end-to-end build log and tutorial for developing a Databricks lakehouse, work-code recommendation model, and human-review data flywheel.
+An end-to-end build log and tutorial for developing a Databricks lakehouse, work-code recommendation model, asset prediction workflow, and human-review data flywheel.
 
 > [!IMPORTANT]
 > The system may be developed and validated privately with authorized operational data. No source dataset is published. Every record, identifier, taxonomy example, screenshot preview, and reproducible result committed to this public repository must be synthetic, fictionalized, sanitized, or safely generalized.
@@ -19,18 +19,18 @@ This repository follows the actual engineering dependency chain:
 4. Build a traceable Bronze Delta ingestion notebook.
 5. Profile and validate Bronze before downstream use.
 6. Clean, standardize, and quality-check records in Silver.
-7. Build versioned Gold training, inference, and evaluation datasets.
-8. Analyze historical labels and define a defensible modeling strategy.
-9. Train and evaluate a TF-IDF recommendation baseline.
-10. Build and validate a hybrid SLM recommendation model.
-11. Connect the approved model to a reviewer application and feedback flywheel.
-12. Add application deployment automation only after the model and app are stable.
+7. Define and validate the Gold work-order phase grain.
+8. Build Gold fact, analytical, and model-ready datasets.
+9. Analyze historical work-code and asset labels and define a defensible modeling strategy.
+10. Train and evaluate a TF-IDF recommendation baseline.
+11. Build and validate a context-aware hybrid recommendation model.
+12. Connect the approved model to a reviewer application and feedback flywheel.
 
 ## Business problem
 
-Facilities organizations produce large volumes of text-heavy work orders. Historical work codes can be missing, inconsistent, or incorrect, weakening operational reporting, asset analysis, and future model training. Manual review is slow, while fully automated classification can be unsafe when labels overlap or descriptions are ambiguous.
+Facilities organizations produce large volumes of text-heavy work orders. Historical work codes can be inconsistent, while asset information may only be available for part of the history. This weakens operational reporting, asset analysis, and future model training.
 
-The proposed solution provides ranked work-code recommendations while keeping a human reviewer in control. Reviewer actions are preserved as evaluation evidence and potential retraining data.
+The project is building a governed data foundation that uses work-order and phase descriptions together with building context to support work-code validation/recommendation and eventual asset prediction. Human review remains part of the long-term workflow for ambiguous or low-confidence recommendations.
 
 ## Target architecture
 
@@ -38,8 +38,8 @@ The proposed solution provides ranked work-code recommendations while keeping a 
 flowchart TD
     A["Source file landing"] --> B["Bronze: raw and traceable"]
     B --> C["Silver: clean and validated"]
-    C --> D["Gold: versioned ML datasets"]
-    D --> E["Baseline and hybrid SLM"]
+    C --> D["Gold: phase fact + model-ready data"]
+    D --> E["Work-code + asset modeling"]
     E --> F["Reviewer application"]
     F --> G["Human feedback"]
     G --> D
@@ -51,7 +51,7 @@ flowchart TD
 |---|---|---|
 | **Bronze** | What did the source contain? | Preserve raw history and lineage |
 | **Silver** | Can we trust and consistently use the business fields? | Clean, standardize, validate, and handle confirmed data-quality problems |
-| **Gold** | What does a specific analytical/modeling use case need? | Build model text, features, context, labels, and versioned datasets |
+| **Gold** | What does a specific analytical/modeling use case need? | Establish business grain, build fact/model datasets, add context, features, and labels |
 
 ## Current implementation plan
 
@@ -61,7 +61,7 @@ flowchart TD
 | [#3](https://github.com/terziceh/workorder-flywheel/issues/3) | Build Bronze tables and ingestion notebook | ✅ Complete |
 | [#4](https://github.com/terziceh/workorder-flywheel/issues/4) | Profile and validate Bronze | ✅ Complete |
 | [#5](https://github.com/terziceh/workorder-flywheel/issues/5) | Build the Silver pipeline | ✅ Complete |
-| [#6](https://github.com/terziceh/workorder-flywheel/issues/6) | Build Gold ML datasets | 🟡 Next |
+| [#6](https://github.com/terziceh/workorder-flywheel/issues/6) | Build Gold ML datasets | 🟡 In progress |
 | [#7](https://github.com/terziceh/workorder-flywheel/issues/7) | Analyze labels and modeling strategy | ⏳ Planned |
 | [#8](https://github.com/terziceh/workorder-flywheel/issues/8) | Train the TF-IDF baseline | ⏳ Planned |
 | [#9](https://github.com/terziceh/workorder-flywheel/issues/9) | Build the hybrid SLM model | ⏳ Planned |
@@ -77,7 +77,7 @@ flowchart TD
 | [Bronze ingestion](docs/04_bronze_ingestion.md) | Full-refresh notebook, Delta table, basic lineage, and count reconciliation |
 | [Bronze validation](docs/04_bronze_ingestion.md#bronze-validation-and-profiling) | Checks performed, generalized findings, duplicate review, and Silver decisions |
 | [Silver transformations](docs/05_silver_transformations.md) | Implemented cleaning, standardization, quality flags, and duplicate handling |
-| [Gold data products](docs/06_gold_data_products.md) | Versioned ML datasets and leakage-resistant splits |
+| [Gold data products](docs/06_gold_data_products.md) | Phase-grain fact design, model-ready datasets, and leakage-resistant splits |
 | [Baseline model](docs/07_baseline_model.md) | Label analysis and TF-IDF benchmark |
 | [SLM recommendation engine](docs/08_slm_recommendation_engine.md) | Constrained hybrid recommendations and evaluation |
 | [Feedback flywheel](docs/09_feedback_flywheel.md) | Governed reviewer actions and future learning data |
@@ -87,7 +87,7 @@ flowchart TD
 
 ## Current status
 
-**Current stage:** Bronze and Silver are implemented. The next dependency is Gold dataset design and model-specific feature preparation under [#6](https://github.com/terziceh/workorder-flywheel/issues/6).
+**Current stage:** Bronze and Silver are complete. Gold dataset design is now in progress under [#6](https://github.com/terziceh/workorder-flywheel/issues/6). The first Gold decision is to model the business process at one work-order phase per row.
 
 - [x] Repository foundation and public Project board
 - [x] Privacy boundary
@@ -103,8 +103,12 @@ flowchart TD
 - [x] Parse creation timestamps and create quality flags
 - [x] Remove confirmed exact duplicate exports while preserving legitimate multi-phase work orders
 - [x] Write and validate the Silver Delta table
-- [ ] Profile Silver for Gold dataset design
-- [ ] Build Gold analytical and model-ready datasets
+- [x] Begin profiling Silver for Gold dataset design
+- [x] Validate `work_order + phase` as the candidate Gold grain
+- [x] Profile work-code, asset, location, and description coverage
+- [ ] Build and validate `fact_workorder_phase`
+- [ ] Add approved property and asset reference context when available
+- [ ] Build model-specific Gold datasets and features
 - [ ] Continue through modeling and the feedback flywheel
 
 ### Bronze ingestion implemented
@@ -152,6 +156,38 @@ Maintenance descriptions are intentionally preserved rather than aggressively cl
 The exact repeated export records identified during Bronze validation were reviewed before removal. Silver retains one copy of each complete business record while preserving legitimate multi-phase work orders, then writes the cleaned snapshot as a Delta table and validates the saved result.
 
 Read the [Silver transformation walkthrough](docs/05_silver_transformations.md) for the implementation decisions, validation approach, and current limitations.
+
+### Gold dataset design started
+
+Gold begins from the validated Silver table rather than the raw source. The intended business grain is **one row per work-order phase** because a work order can contain multiple phases with different maintenance context, work codes, locations, or assets.
+
+The first Gold validation tested the candidate key `work_order + phase`. No repeated combinations were found in the current cleaned dataset, supporting that combination as the initial phase-level business key. This is treated as an evidence-based design decision rather than an assumption and will continue to be validated as additional data sources are introduced.
+
+Initial field profiling also established several Gold rules:
+
+- Work code and both primary description fields are retained as core historical/modeling context.
+- Property and facility are retained as building context.
+- Asset is retained even though it is only populated for part of the history because labeled asset records are valuable for future supervised modeling.
+- Location remains optional because it adds useful context when present.
+- Completely unpopulated source fields are not promoted into the initial Gold fact solely because they existed upstream.
+- Missing asset or location values do not cause phase records to be discarded.
+
+The first planned Gold table is `fact_workorder_phase`. Its responsibility is to represent the business event cleanly at the validated phase grain. Model-specific text preparation and feature engineering will be built downstream from that fact rather than mixed into the core business table.
+
+```text
+Silver: workorders_clean
+          |
+          v
+Gold: fact_workorder_phase
+          |
+          v
+Gold: model-ready phase datasets
+          |
+          v
+Work-code and asset modeling
+```
+
+Future property and asset master data will be profiled independently before being joined. Their natural keys, relationships, and join cardinality must be understood before enrichment so that additional context does not accidentally change the phase grain.
 
 ## Repository organization
 
